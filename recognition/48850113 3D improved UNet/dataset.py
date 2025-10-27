@@ -6,6 +6,7 @@ import os
 import torch
 import nibabel as nib
 import numpy as np
+import random
 from torch.utils.data import Dataset
 
 NUM_CLASSES = 6
@@ -115,3 +116,46 @@ class Prostate3DDataset(Dataset):
             image, one_hot = self.transform(image, one_hot)
 
         return image, one_hot
+
+# Random rotation augmentation for 3D images
+def random_rotate(image, mask):
+    """
+    Rotate a 3D image and its corresponding mask by a random multiple of 90 
+    degrees along a randomly chosen plane.
+
+    Parameters:
+    image: 3D image tensor of shape [C, D, H, W]
+    mask: One-hot encoded mask tensort of shape [C, D, H, W]
+
+    Returns:
+    tuple: Rotated image and mask tensors
+    """
+    # Randomly choose a number of 90 degree rotations (0, 90, 180, 270)
+    k = random.choice([0, 1, 2, 3])
+
+    # Randomly choose a plane to rotate along
+    # (2, 3) = height-width plane, (1, 3) = depth-width plane, 
+    # (1, 2) = depth-height plane
+    axis = random.choice([(2,3), (1,3), (1,2)])
+
+    # Apply the rotation to both image and mask
+    image = torch.rot90(image, k, dims=axis)
+    mask = torch.rot90(mask, k, dims=axis)
+    return image, mask
+
+class Random3DTransform:
+    """
+    Callable class for applying random 3D transformations to an image and mask pair.
+    Has a 50% change of applying a random rotation.
+
+    Parameters:
+    image: 3D image tensor of shape [C, D, H, W]
+    mask: One-hot encoded mask tensort of shape [C, D, H, W]
+
+    Returns: 
+    tuple: Transformed image and mask tensors
+    """
+    def __call__(self, image, mask):
+        if random.random() > 0.5:
+            image, mask = random_rotate(image, mask)
+        return image, mask
