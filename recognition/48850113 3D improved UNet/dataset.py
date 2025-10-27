@@ -1,5 +1,6 @@
 """
-This file contains the data loader for loading and preprocessing your data
+This file contains the data loader for loading and preprocessing the data.
+It can also apply 3D augmentation (random rotations) to the images and masks.
 """
 
 import os
@@ -7,9 +8,55 @@ import torch
 import nibabel as nib
 import numpy as np
 import random
+import scipy.ndimage
 from torch.utils.data import Dataset
 
+# Target shape for all images (depth, height, width)
+TARGET_SHAPE = (64, 128, 128)
 NUM_CLASSES = 6
+
+def resize_volume(volume, target_shape=TARGET_SHAPE):
+    """
+    Resize 3D image volume to a target shape using linear interpolation.
+
+    Parameters:
+    Volume: 3D image volume [D, H, W]
+    target_shape: Desired output shape as (D, H, W)
+
+    Returns:
+    numpy.ndarray: Resized 3D images
+    """
+    # Compute scaling factors for each dimension
+    factors = (
+        target_shape[0] / volume.shape[0], # Depth scaling
+        target_shape[1] / volume.shape[1], # Height scaling
+        target_shape[2] / volume.shape[2], # Width scaling
+    )
+    # Resize using linear iterpolation
+    volume_resized = scipy.ndimage.zoom(volume, factors, order=1)
+    return volume_resized
+
+def resize_mask(mask, target_shape=TARGET_SHAPE):
+    """
+    Resize mask to a target shape using nearest neighbour interpolation.
+
+    Parameters:
+    mask: 3D masks [D, H, W]
+    target_shape: Desired output shape as (D, H, W)
+
+    Returns:
+    numpy.ndarray: Resized 3D mask (labels for classes are preserved for one-hot encoding)
+    """
+    # Compute scaling factors for each dimension
+    factors = (
+        target_shape[0] / mask.shape[0], # Depth scaling
+        target_shape[1] / mask.shape[1], # Height scaling
+        target_shape[2] / mask.shape[2], # Width scaling
+    )
+
+    # Resize using nearest neighbour interpolation to preserve labels for classes
+    mask_resized = scipy.ndimage.zoom(mask, factors, order=0)
+    return mask_resized.astype(np.int64)
 
 class Prostate3DDataset(Dataset):
     """
@@ -97,6 +144,10 @@ class Prostate3DDataset(Dataset):
 
         image = image_nii.get_fdata().astype(np.float32)
         mask = mask_nii.get_fdata().astype(np.int64)
+
+        # Downsample images and masks to the target shape
+        image = resize_volume(image)
+        mask = resize_mask(mask)
 
         # Normalise image to zero mean and unit variance
         image = (image - np.mean(image)) / (np.std(image) + 1e-5)
