@@ -169,3 +169,47 @@ class DiceLoss3D(nn.Module):
 
         dice_loss = 1 - dice_score.mean()
         return dice_loss
+    
+class DiceCELoss(nn.Module):
+    """
+    Combines dice loss and cross entropy loss.
+
+    Dice loss measures how much the predicted and true masks overlap.
+    Cross entropy loss measures how well each 3D pixel is classified.
+    Using both helps the model learn both shape and detail accuracy.
+    """
+    def __init__(self, smooth=1e-5, ce_weight=0.5):
+        """
+        Parameters:
+        smooth: constant added to numerator and denominator to avoid division by 
+        zero when masks are empty
+        ce_weight: Weight factor for the cross entropy part
+        """
+        super().__init__()
+        self.dice = DiceLoss3D(smooth)
+        self.ce = nn.CrossEntropyLoss()
+        self.ce_weight = ce_weight
+
+    def forward(self, outputs, targets_one_hot):
+        """
+        Calculate the combined dice and cross entropy loss
+
+        Parameters:
+        outputs: Raw model outputs with shape 
+        [Batch size, Number of classes, Depth, Height, Width]
+        targets_one_hot: Ground truth masks with same shape as outputs
+
+        Returns:
+        Tensor: Combined dice + cross entropy loss value
+        """
+        # Dice loss
+        # Measures overlap between predicted and true masks
+        dice_loss = self.dice(outputs, targets_one_hot)
+
+        # Cross entropy loss
+        # Converts one-hot masks into class labels for cross entropy 
+        targets_labels = torch.argmax(targets_one_hot, dim=1)
+        ce_loss = self.ce(outputs, targets_labels)
+
+        # Combine both losses
+        return dice_loss + self.ce_weight * ce_loss
