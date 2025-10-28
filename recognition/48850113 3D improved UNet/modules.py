@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 class ConvBlock3D(nn.Module):
@@ -89,3 +90,17 @@ class ImprovedUNet3D(nn.Module):
 
         # Final output layer
         self.final = nn.Conv3d(base_channels, n_classes, kernel_size=1)
+
+    def forward(self, x):
+        """
+        Forward pass through the full U-Net model
+
+        Parameters:
+        x: Input 3D image with shape 
+        [Batch size, In channel number, Depth, Height, Width]
+        """
+        # Encoder path
+        encoder1_output = self.encoder1(x)
+        encoder2_output = self.encoder2(self.pool(encoder1_output))
+        encoder3_output = self.encoder3(self.pool(encoder2_output))
+        encoder4_output = self.encoder4(self.pool(encoder3_output))
