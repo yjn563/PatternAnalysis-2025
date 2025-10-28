@@ -98,9 +98,30 @@ class ImprovedUNet3D(nn.Module):
         Parameters:
         x: Input 3D image with shape 
         [Batch size, In channel number, Depth, Height, Width]
+
+        Returns:
+        Tensor: Output feature map with shape 
+        [Batch size, Out channel number, Depth, Height, Width]
         """
         # Encoder path
         encoder1_output = self.encoder1(x)
         encoder2_output = self.encoder2(self.pool(encoder1_output))
         encoder3_output = self.encoder3(self.pool(encoder2_output))
         encoder4_output = self.encoder4(self.pool(encoder3_output))
+
+        # Decoder path
+        # Level 4 decoding (combine encoder3 skip)
+        decoder4_input = self.upsample(encoder4_output)
+        decoder4_output = self.decoder4(torch.cat([decoder4_input, encoder3_output], dim=1))
+
+        # Level 3 decoding (combine encoder2 skip)
+        decoder3_input = self.upsample(decoder4_output)
+        decoder3_output = self.decoder3(torch.cat([decoder3_input, encoder2_output], dim=1))
+
+        # Level 2 decoding (combine encoder1 skip)
+        decoder2_input = self.upsample(decoder3_output)
+        decoder2_output = self.decoder2(torch.cat([decoder2_input, encoder1_output], dim=1))
+
+        # Final output layer
+        output = self.final(decoder2_output)
+        return output
