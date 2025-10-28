@@ -18,6 +18,7 @@ class ConvBlock3D(nn.Module):
         dropout: Dropout rate applied after convolutions to reduce overfitting.
         """
         super().__init__()
+        
         # Convolutional path
         self.conv = nn.Sequential(
             nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1),
@@ -45,3 +46,38 @@ class ConvBlock3D(nn.Module):
         [Batch size, Out channel number, Depth, Height, Width]
         """
         return self.conv(x) + self.residual(x)
+    
+class ImprovedUNet3D(nn.Module):
+    """
+    Improved 3D U-Net architecture for 3D image segmentation.
+
+    This model takes 3d images and predicts a segmentation mask.
+    It uses an encoder-decoder structure. The encoder compresses the images and 
+    learns features. The decoder upsamples and reconstructs the segmentation map.
+    Skip connections are used to combine details from the encoder with 
+    features in the decoder.
+
+    Each block has small residual connections inside to help training.
+    Instance normalisation keeps training stable, and trilinear upsampling is 
+    used for smooth decoding.
+    """
+    def __init__(self, in_channels=1, n_classes=6, base_channels=32):
+        """
+        Initialise the 3D U-Net model
+
+        Parameters: 
+        in_channels: Number of input channels (e.g. 1 for grayscale)
+        n_classes: Number of segmentation output classes
+        base_channels: Base number of feature channels (doubles with each encoder level)
+        """
+        super().__init__()
+
+        # Encoder (Downampling)
+        self.encoder1 = ConvBlock3D(in_channels, base_channels)
+        self.encoder2 = ConvBlock3D(base_channels, base_channels * 2)
+        self.encoder3 = ConvBlock3D(base_channels * 2, base_channels * 4)
+        self.encoder4 = ConvBlock3D(base_channels * 4, base_channels * 8)
+
+        # Pooling and upsampling layers
+        self.pool = nn.MaxPool3d(2)
+        self.upsample = nn.Upsample(scale_factor=2, mode='trilinear', align_corners=True)
