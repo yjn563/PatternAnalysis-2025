@@ -125,3 +125,47 @@ class ImprovedUNet3D(nn.Module):
         # Final output layer
         output = self.final(decoder2_output)
         return output
+    
+class DiceLoss3D(nn.Module):
+    """
+    Dice loss for segmentation
+
+    This loss measures the overlap between predicted segmentation maps and the ground truth masks. 
+    It is bassed on the dicce simimlarity coefficient.
+    """
+    def __init__(self, smooth=1e-5):
+        """
+        Initialise the dice loss class
+
+        Parameters:
+        smooth: constant added to numerator and denominator to avoid division by 
+        zero when masks are empty
+        """
+        super().__init__()
+        self.smooth = smooth
+
+    def forward(self, outputs, targets):
+        """
+        Compute dice loss between predictions and targets.
+
+        Parameters:
+        outputs: Raw model outputs with shape 
+        [Batch size, Number of classes, Depth, Height, Width]
+        targets: One-hot encoded ground truth with same shape as preds
+
+        Returns:
+        Tensor: Scalar dice loss value
+        """
+        # Convert model outputs to probabilities using softmax across classes
+        outputs = torch.softmax(outputs, dim=1)
+
+        # Find the overlap between prediction and target for each class
+        intersection = (outputs * targets).sum(dim=(2, 3, 4))
+
+        # Compute dice score for each class in each batch
+        dice_score = (2. * intersection + self.smooth) / (
+            outputs.sum(dim=(2, 3, 4)) + targets.sum(dim=(2, 3, 4)) + self.smooth
+        )
+
+        dice_loss = 1 - dice_score.mean()
+        return dice_loss
