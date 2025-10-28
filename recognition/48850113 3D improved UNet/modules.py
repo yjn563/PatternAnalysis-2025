@@ -18,7 +18,7 @@ class ConvBlock3D(nn.Module):
         dropout: Dropout rate applied after convolutions to reduce overfitting.
         """
         super().__init__()
-        
+
         # Convolutional path
         self.conv = nn.Sequential(
             nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1),
@@ -81,3 +81,11 @@ class ImprovedUNet3D(nn.Module):
         # Pooling and upsampling layers
         self.pool = nn.MaxPool3d(2)
         self.upsample = nn.Upsample(scale_factor=2, mode='trilinear', align_corners=True)
+
+        # Decoder (Upsampling)
+        self.decoder4 = ConvBlock3D(base_channels * 8 + base_channels * 4, base_channels * 4)
+        self.decoder3 = ConvBlock3D(base_channels * 4 + base_channels * 2, base_channels * 2)
+        self.decoder2 = ConvBlock3D(base_channels * 2 + base_channels, base_channels)
+
+        # Final output layer
+        self.final = nn.Conv3d(base_channels, n_classes, kernel_size=1)
