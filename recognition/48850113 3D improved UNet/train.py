@@ -1,6 +1,7 @@
 import os
 import torch
 import torch.optim as optim
+import matplotlib.pyplot as plt
 import numpy as np
 import random
 from torch.utils.data import DataLoader
@@ -147,3 +148,18 @@ if __name__ == "__main__":
     val_mean_dice_history = train_validate_3d(
         model, train_loader, val_ds, optimizer, criterion, epochs=100
     )
+
+    print("Saving dice plot...")
+
+    # Plot and save overall mean dice score 
+    plt.figure(figsize=(7,5))
+    plt.plot(val_mean_dice_history, label="Validation Mean Dice", color="blue")
+    plt.xlabel("Epoch")
+    plt.ylabel("Dice Coefficient")
+    plt.title("Overall Validation Dice (3D Improved UNet)")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("val_mean_dice.png")
+    plt.close()
+    print("Saved overall mean Dice plot to val_mean_dice.png")
