@@ -1,9 +1,13 @@
+import os
 import torch
 import torch.optim as optim
 import numpy as np
 import random
+from torch.utils.data import DataLoader
 from tqdm import tqdm
-from modules import dice_score_per_class, visualise_volume_prediction
+
+from dataset import Prostate3DDataset, Random3DTransform
+from modules import DiceCELoss, ImprovedUNet3D, dice_score_per_class, visualise_volume_prediction
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -12,6 +16,8 @@ print(f"Using device: {device}")
 torch.manual_seed(42) # Seed for PyTorch operations
 np.random.seed(42) # Seed for NumPy operations
 random.seed(42) # Seed for python's built in random module
+
+NUM_CLASSES = 6
 
 def train_validate_3d(
     model, train_loader, val_dataset, optimizer, criterion,
@@ -107,8 +113,37 @@ def train_validate_3d(
             print(f"Visualising predictions at Epoch {epoch+1} ...")
 
             # Generate and save a visualisation
-            visualise_volume_prediction(model, val_dataset, idx=0, save_path=save_path)
+            visualise_volume_prediction(model, val_dataset, idx=0, device=device, save_path=save_path)
 
     print("✅ Training complete!")
 
     return val_mean_dice_history
+
+if __name__ == "__main__":
+    """
+    Train and validate the 3D segmentation model.
+    Sets up data, model, and training configuration, then runs training loop.
+    """
+    # Define root directory containing 3D images and segmentation masks
+    root = "/home/groups/comp3710/HipMRI_Study_open"
+    image_dir = os.path.join(root, "semantic_MRs")
+    mask_dir = os.path.join(root, "semantic_labels_only")
+
+    # Create training and validation datasets
+    train_ds = Prostate3DDataset(image_dir, mask_dir, transform=Random3DTransform(), subset=30)
+    val_ds = Prostate3DDataset(image_dir, mask_dir, subset=5)  # 5 images for validation (no augmentation)
+
+    # Data loader for batching and shuffling training samples
+    train_loader = DataLoader(train_ds, batch_size=1, shuffle=True)
+
+    # Initialise model
+    model = ImprovedUNet3D(in_channels=1, n_classes=NUM_CLASSES).to(device)
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
+
+    # Combined dice + cross entropy loss 
+    criterion = DiceCELoss()
+
+    # Train model for 100 epochs and visualise predictions for every 25 epochs
+    val_mean_dice_history = train_validate_3d(
+        model, train_loader, val_ds, optimizer, criterion, epochs=100
+    )
