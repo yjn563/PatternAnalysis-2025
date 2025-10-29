@@ -3,7 +3,7 @@ import torch.optim as optim
 import numpy as np
 import random
 from tqdm import tqdm
-from modules import dice_score_per_class
+from modules import dice_score_per_class, visualise_volume_prediction
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -15,19 +15,26 @@ random.seed(42) # Seed for python's built in random module
 
 def train_validate_3d(
     model, train_loader, val_dataset, optimizer, criterion,
-    epochs=100
+    epochs=100, visualise_every=25
 ):
     """
     Train a 3D segmentation model on the provided dataset.
 
-    This function performs the training loop over the specified number of epochs.
+    This function performs the training loop over the specified number of epochs. 
+    It calculates and average training loss and dice scores per epoch, adjusts the learning rate 
+    dynamically. and visualises the model predictions every few epochs.
 
     Parameters:
     model: The 3D segmentation model to train
     train_loader: Dataloader for the training dataset
+    val_dataset: Dataset used for validation
     optimizer: Optimizer used for model parameter updates
     criterion: Loss function used to compute training loss
     epochs: Number of training epochs
+    visualise_every: Freqquency which model predictions are visualised
+
+    Returns:
+    List: List of mean dice score for each epoch.
     """
     # Move model to selected device
     model.to(device)
@@ -78,7 +85,7 @@ def train_validate_3d(
 
                 # Calculate dice score per class for this prediction
                 dice_scores = dice_score_per_class(outputs, mask)
-                
+
                 val_dice_scores.append(dice_scores)
 
             # Calculate mean dice score for each class across all validation samples
@@ -90,3 +97,18 @@ def train_validate_3d(
             val_mean_dice_history.append(mean_dice)
 
         print(f"Epoch {epoch+1}: Train Loss={avg_loss:.4f}, Val Mean Dice={mean_dice:.4f}")
+
+        # Update learning rate based on training loss
+        scheduler.step(avg_loss)
+
+        # Visualise model predictions every few epochs
+        if (epoch + 1) % visualise_every == 0:
+            save_path = f"prediction_epoch_{epoch+1}.png"
+            print(f"Visualising predictions at Epoch {epoch+1} ...")
+
+            # Generate and save a visualisation
+            visualise_volume_prediction(model, val_dataset, idx=0, save_path=save_path)
+
+    print("✅ Training complete!")
+
+    return val_mean_dice_history
