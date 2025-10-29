@@ -218,10 +218,11 @@ class DiceCELoss(nn.Module):
     
 def visualise_volume_prediction(model, dataset, idx=0, device="cpu", save_path="prediction.png"):
     """
-    Visulise the segmentation prediction.
+    Visulise the segmentation prediction compared to the ground truth.
 
     This function takes a 3D image and its corresponding segmentation mask, generates 
-    a prediction from the model, and displays the middle slice of the volume.
+    a prediction from the model, and displays the middle slice of the volume alongside 
+    the ground truth for comparison.
 
     Parameters:
     model: The segmentation model used to generate predictions.
@@ -244,19 +245,27 @@ def visualise_volume_prediction(model, dataset, idx=0, device="cpu", save_path="
         # Convert model output probabilities to class labels
         prediction_label = torch.argmax(predictions, dim=1).squeeze().cpu().numpy()
 
+    # Convert one-hot encoded ground truth mask to label format
+    mask_label = torch.argmax(mask_onehot, dim=0).numpy()
+
     # Choose the middle slice along the depth axis for visualisation
     mid_slice = image.shape[1] // 2
 
-    # Create a figure will 2 panels (input MRI, and prediction)
+    # Create a figure will 3 panels (input MRI, ground truth, and prediction)
     plt.figure(figsize=(12,4))
 
     # Panel 1: MRI slice
-    plt.subplot(1,2,1)
+    plt.subplot(1,3,1)
     plt.imshow(image[0, mid_slice].cpu(), cmap="gray")
     plt.title("MRI Slice")
 
-    # Panel 2: Model prediction
-    plt.subplot(1,2,2)
+    # Panel 2: Ground truth segmentation mask
+    plt.subplot(1,3,2)
+    plt.imshow(mask_label[mid_slice], cmap="jet", vmin=0, vmax=5)
+    plt.title("Ground Truth")
+
+    # Panel 3: Model prediction
+    plt.subplot(1,3,3)
     plt.imshow(prediction_label[mid_slice], cmap="jet", vmin=0, vmax=5)
     plt.title("Prediction")
 
