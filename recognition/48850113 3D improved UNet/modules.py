@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
+import numpy as np
 
 class ConvBlock3D(nn.Module):
     """
@@ -213,3 +215,53 @@ class DiceCELoss(nn.Module):
 
         # Combine both losses
         return dice_loss + self.ce_weight * ce_loss
+    
+def visualise_volume_prediction(model, dataset, idx=0, device="cpu", save_path="prediction.png"):
+    """
+    Visulise the segmentation prediction.
+
+    This function takes a 3D image and its corresponding segmentation mask, generates 
+    a prediction from the model, and displays the middle slice of the volume.
+
+    Parameters:
+    model: The segmentation model used to generate predictions.
+    dataset: The dataset containing input 3D images and one-hot encoded masks.
+    idx: Index of the sample in the dataset to visualise.
+    device: device to run the model
+    save_path: File path to save the generated visualisation image.
+    """
+    # Set model to evaluation movde
+    model.eval()
+
+    # Retrieve one sample (image and its one-hot encoded mask)
+    image, mask_onehot = dataset[idx]
+
+    # Disable gradient computation
+    with torch.no_grad():
+        # Forward pass (predict the segmentation mask)
+        predictions = model(image.unsqueeze(0).to(device))
+
+        # Convert model output probabilities to class labels
+        prediction_label = torch.argmax(predictions, dim=1).squeeze().cpu().numpy()
+
+    # Choose the middle slice along the depth axis for visualisation
+    mid_slice = image.shape[1] // 2
+
+    # Create a figure will 2 panels (input MRI, and prediction)
+    plt.figure(figsize=(12,4))
+
+    # Panel 1: MRI slice
+    plt.subplot(1,2,1)
+    plt.imshow(image[0, mid_slice].cpu(), cmap="gray")
+    plt.title("MRI Slice")
+
+    # Panel 2: Model prediction
+    plt.subplot(1,2,2)
+    plt.imshow(prediction_label[mid_slice], cmap="jet", vmin=0, vmax=5)
+    plt.title("Prediction")
+
+    plt.suptitle("3D Improved UNet Segmentation")
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+    print(f"Saved prediction visualization to {save_path}")
