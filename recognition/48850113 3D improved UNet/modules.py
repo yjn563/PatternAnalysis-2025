@@ -216,6 +216,47 @@ class DiceCELoss(nn.Module):
         # Combine both losses
         return dice_loss + self.ce_weight * ce_loss
     
+def dice_score_per_class(predictions, targets_one_hot, smooth=1e-5):
+    """
+    Compute the dice score for each class.
+
+    Dice score measures the overlap between the predicted segmentation and the 
+    ground truth mask for each class.
+
+    Parameters:
+    predictions: Model outputs with shape [Batch, Number of classes, Depth, Height, Width]
+    targets_one_hot: One-hot encoded ground truth masks with same shape as predictions
+    smooth: Small constant to avoid division by zero when masks are empty
+
+    Returns:
+    List: Dice score for each class
+    """
+    # Convert to probabilities using softmax
+    probabilities = torch.softmax(predictions, dim=1)
+
+    # Convert probabilities to predicted class labels
+    predicted_labels = torch.argmax(probabilities, dim=1)
+
+    # Convert one-hot ground truth to class labels
+    targets_labels = torch.argmax(targets_one_hot, dim=1)
+
+    dice_scores = []
+    num_classes = predictions.shape[1]
+
+    # Calculate dice score for each class
+    for cls in range(num_classes):
+        # Binary mask for current class
+        predicted_mask = (predicted_labels == cls).float()
+        true_mask = (targets_labels == cls).float()
+
+        # Compute intersection and dice score
+        intersection = (predicted_mask * true_mask).sum()
+        dice = (2 * intersection + smooth) / (predicted_mask.sum() + true_mask.sum() + smooth)
+        
+        dice_scores.append(dice.item())
+        
+    return dice_scores
+    
 def visualise_volume_prediction(model, dataset, idx=0, device="cpu", save_path="prediction.png"):
     """
     Visulise the segmentation prediction compared to the ground truth.
