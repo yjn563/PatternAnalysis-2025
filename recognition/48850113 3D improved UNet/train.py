@@ -49,6 +49,7 @@ def train_validate_3d(
     # Keep track of average training losses per epoch
     train_losses = []
     val_mean_dice_history = []
+    val_per_class_dice_history = []
 
     # Learning rate scheduler that reduces learning rate when training loss has stopped improving
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, factor=0.5)
@@ -101,9 +102,10 @@ def train_validate_3d(
             # Calculate overall mean dice across all classes
             mean_dice = np.mean(mean_dice_per_class)
 
+            val_per_class_dice_history.append(mean_dice_per_class)
             val_mean_dice_history.append(mean_dice)
 
-        print(f"Epoch {epoch+1}: Train Loss={avg_loss:.4f}, Val Mean Dice={mean_dice:.4f}")
+        print(f"Epoch {epoch+1}: Train Loss={avg_loss:.4f}, Val Mean Dice={mean_dice:.4f}, Per-class Dice: {mean_dice_per_class}")
 
         # Update learning rate based on training loss
         scheduler.step(avg_loss)
@@ -118,7 +120,7 @@ def train_validate_3d(
 
     print("✅ Training complete!")
 
-    return val_mean_dice_history
+    return val_mean_dice_history, val_per_class_dice_history
 
 if __name__ == "__main__":
     """
@@ -145,13 +147,13 @@ if __name__ == "__main__":
     criterion = DiceCELoss()
 
     # Train model for 100 epochs and visualise predictions for every 25 epochs
-    val_mean_dice_history = train_validate_3d(
+    val_mean_dice_history, val_per_class_dice_history = train_validate_3d(
         model, train_loader, val_ds, optimizer, criterion, epochs=100
     )
 
-    print("Saving dice plot...")
+    print("Saving dice plots...")
 
-    # Plot and save overall mean dice score 
+    # Plot and save overall mean dice score across epochs
     plt.figure(figsize=(7,5))
     plt.plot(val_mean_dice_history, label="Validation Mean Dice", color="blue")
     plt.xlabel("Epoch")
@@ -163,3 +165,29 @@ if __name__ == "__main__":
     plt.savefig("val_mean_dice.png")
     plt.close()
     print("Saved overall mean Dice plot to val_mean_dice.png")
+
+    # Plot and save per class dice score across epochs
+    class_names = [
+        "Background",
+        "Body",
+        "Bones",
+        "Bladder",
+        "Rectum",
+        "Prostate"
+    ]
+
+    val_dice_history = np.array(val_per_class_dice_history)
+    plt.figure(figsize=(8,5))
+
+    for cls in range(NUM_CLASSES):
+        plt.plot(val_dice_history[:, cls], label=class_names[cls])
+
+    plt.xlabel("Epoch")
+    plt.ylabel("Dice Coefficient")
+    plt.title("Per-class Validation Dice (3D Improved UNet)")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("val_dice_per_class.png")
+    plt.close()
+    print("Saved per-class Dice plot to val_dice_per_class.png")
