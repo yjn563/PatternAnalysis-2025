@@ -1,3 +1,7 @@
+"""
+This file contains an example usage of the trained 3D U-Net model
+"""
+
 import os
 import torch
 from train import ImprovedUNet3D, Prostate3DDataset

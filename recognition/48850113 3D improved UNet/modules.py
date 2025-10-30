@@ -1,3 +1,7 @@
+"""
+This file contains the source code of the components of the 3D U-Net model
+"""
+
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt

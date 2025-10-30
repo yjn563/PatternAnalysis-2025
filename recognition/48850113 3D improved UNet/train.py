@@ -1,3 +1,7 @@
+"""
+This file contains the source code for training, validating, testing and saving the 3D U-Net model
+"""
+
 import os
 import torch
 import torch.optim as optim
