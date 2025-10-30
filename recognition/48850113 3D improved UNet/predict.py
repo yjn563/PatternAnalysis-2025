@@ -4,10 +4,12 @@ This file contains an example usage of the trained 3D U-Net model
 
 import os
 import torch
-from train import ImprovedUNet3D, Prostate3DDataset
 from torch.utils.data import DataLoader
 import numpy as np
 import matplotlib.pyplot as plt
+
+from dataset import Prostate3DDataset
+from modules import ImprovedUNet3D, dice_score_per_class, visualise_volume_prediction
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -148,10 +150,37 @@ def predict():
     # Get predictions on the test set
     predictions = make_predictions(model, test_loader)
 
-    # Visualise predictions and save the images
-    for idx, prediction in enumerate(predictions):
+    # Store per class dice scores for each test sample
+    val_dice_scores = []
+
+    for idx, (images, masks) in enumerate(test_loader):
+        # Move to the correct device
+        images = images.to(device)
+        masks = masks.to(device)
+
+        # Get model predictions
+        predictions = model(images) 
+
+        # Calculate dice scores per class for this batch
+        dice_scores = dice_score_per_class(predictions, masks)
+
+        # Append the per class dice scores to the list
+        val_dice_scores.append(dice_scores)
+
+        # Save visualisation for each sample in the batch
         save_path = f"prediction_{idx}.png"
         visualise_volume_prediction(model, dataset, idx, device, save_path)
+
+    # Calculate the mean dice score for each class across all test samples
+    val_dice_scores = np.array(val_dice_scores)
+
+    # Calculate mean per class dice scores
+    mean_dice_per_class = np.mean(val_dice_scores, axis=0)
+    print(f"Per-class Dice: {mean_dice_per_class}")
+
+    # Print the per class dice scores for each test sample
+    for idx, dice_scores in enumerate(val_dice_scores):
+        print(f"Sample {idx} Per-class Dice Scores: {dice_scores}")
 
 if __name__ == "__main__":
     predict()
