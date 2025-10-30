@@ -65,7 +65,7 @@ class Prostate3DDataset(Dataset):
     Can apply transformations (e.g. augmentation) and one-hot encode masks for segmentation wil multiple classes.
     Used to create data loaders for the training, validation and testing phases.
     """
-    def __init__(self, image_dir, mask_dir, transform=None, subset=None, num_classes=NUM_CLASSES):
+    def __init__(self, image_dir, mask_dir, transform=None, subset_start=None, subset_end=None, num_classes=NUM_CLASSES):
         """
         Initialise the dataset class by loading and pairing images with their masks.
 
@@ -73,7 +73,8 @@ class Prostate3DDataset(Dataset):
         image_dir: Path to directory contatining the imgaes.
         mask_dir: Path to directory containing the masks.
         transform: Transformation function to apply to both the images and masks.
-        subset: Number of samples to load from the dataset.
+        subset_start: Starting index for subset of data to use
+        subset_end: Ending index for subset of data to use
         num_classes: Number of segmentation classes for one-hot encoding.
         """
         self.image_dir = image_dir
@@ -99,8 +100,8 @@ class Prostate3DDataset(Dataset):
                 paired.append((f, mask_map[base]))
 
         # Limit dataset size to subset size if provided
-        if subset:
-            paired = paired[:subset]
+        if subset_start is not None and subset_end is not None:
+            paired = paired[subset_start:subset_end]
 
         self.pairs = paired
         print(f"📦 Loaded {len(self.pairs)} paired volumes from {image_dir}")

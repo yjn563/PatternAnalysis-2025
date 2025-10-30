@@ -132,9 +132,26 @@ if __name__ == "__main__":
     image_dir = os.path.join(root, "semantic_MRs")
     mask_dir = os.path.join(root, "semantic_labels_only")
 
-    # Create training and validation datasets
-    train_ds = Prostate3DDataset(image_dir, mask_dir, transform=Random3DTransform(), subset=30)
-    val_ds = Prostate3DDataset(image_dir, mask_dir, subset=5)  # 5 images for validation (no augmentation)
+    # Get the total number of samples from the dataset
+    dataset = Prostate3DDataset(image_dir, mask_dir)
+    num_samples = len(dataset)
+
+    # Split the data into training and validation indices (80% train, 20% validation)
+    train_size = int(0.8 * num_samples)
+    train_start, train_end = 0, train_size
+    val_start, val_end = train_size, num_samples - 3 # Keep last three samples for prediction
+
+    # Create training and validation datasets using the custom start/end range
+    train_ds = Prostate3DDataset(
+        image_dir, mask_dir, 
+        transform=Random3DTransform(), 
+        subset_start=train_start, subset_end=train_end
+    )
+
+    val_ds = Prostate3DDataset(
+        image_dir, mask_dir, 
+        subset_start=val_start, subset_end=val_end
+    )
 
     # Data loader for batching and shuffling training samples
     train_loader = DataLoader(train_ds, batch_size=1, shuffle=True)
