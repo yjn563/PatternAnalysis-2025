@@ -12,10 +12,10 @@ def load_model(model_path):
     The model is then set to evaluation mode to be ready for inference.
 
     Parameters:
-        model_path: Path to the saved model file.
+    model_path: Path to the saved model file.
 
     Returns:
-        model: Loaded model with weights.
+    model: Loaded model with weights.
     """
     # Instantise the model architecture
     model = ImprovedUNet3D(in_channels=1, n_classes=6).to(device)
@@ -26,3 +26,30 @@ def load_model(model_path):
     # Set the model to evaluation mode
     model.eval()
     return model
+
+def make_predictions(model, test_loader):
+    """
+    Make predictions on the test set using the trained model.
+
+    Parameters:
+    model: The trained model to use for inference
+    test_loader: DataLoader for the test set
+
+    Returns:
+    List: List of predictions on the test set
+    """
+    predictions = []
+
+    # Disable gradient computation
+    with torch.no_grad():
+        # Iterate over the test data loader in batches
+        for images, _ in test_loader:
+            images = images.to(device)
+
+            # Perform forward pass to get predictions
+            output = model(images)
+
+            # Move back to CPU and append to the list
+            predictions.append(output.cpu())
+
+    return predictions
