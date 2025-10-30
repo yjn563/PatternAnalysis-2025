@@ -171,7 +171,7 @@ if __name__ == "__main__":
 
     # Train model for 100 epochs and visualise predictions for every 25 epochs
     val_mean_dice_history, val_per_class_dice_history = train_validate_3d(
-        model, train_loader, val_ds, optimizer, criterion, epochs=100
+        model, train_loader, val_ds, optimizer, criterion, epochs=50, visualise_every=10
     )
 
     print("Saving dice plots...")
