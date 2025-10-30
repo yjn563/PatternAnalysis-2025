@@ -1,5 +1,7 @@
 import torch
 from train import ImprovedUNet3D
+import numpy as np
+import matplotlib.pyplot as plt
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
@@ -53,3 +55,61 @@ def make_predictions(model, test_loader):
             predictions.append(output.cpu())
 
     return predictions
+
+def visualise_volume_prediction(model, dataset, idx=0, device="cpu", save_path="prediction.png"):
+    """
+    Visualise the segmentation prediction compared to the ground truth.
+
+    This function takes a 3D image and its corresponding segmentation mask, generates 
+    a prediction from the model, and displays the middle slice of the volume alongside 
+    the ground truth for comparison.
+
+    Parameters:
+    model: The segmentation model used to generate predictions.
+    dataset: The dataset containing input 3D images and one-hot encoded masks.
+    idx: Index of the sample in the dataset to visualise.
+    device: device to run the model
+    save_path: File path to save the generated visualisation image.
+    """
+    model.eval()
+
+    # Retrieve one sample (image and its one-hot encoded mask)
+    image, mask_onehot = dataset[idx]
+
+    # Disable gradient computation
+    with torch.no_grad():
+        # Forward pass (predict the segmentation mask)
+        predictions = model(image.unsqueeze(0).to(device))
+
+        # Convert model output probabilities to class labels
+        prediction_label = torch.argmax(predictions, dim=1).squeeze().cpu().numpy()
+
+    # Convert one-hot encoded ground truth mask to label format
+    mask_label = torch.argmax(mask_onehot, dim=0).numpy()
+
+    # Choose the middle slice along the depth axis for visualization
+    mid_slice = image.shape[1] // 2
+
+    # Create a figure with 3 panels (input MRI, ground truth, and prediction)
+    plt.figure(figsize=(12,4))
+
+    # Panel 1: MRI slice
+    plt.subplot(1,3,1)
+    plt.imshow(image[0, mid_slice].cpu(), cmap="gray")
+    plt.title("MRI Slice")
+
+    # Panel 2: Ground truth segmentation mask
+    plt.subplot(1,3,2)
+    plt.imshow(mask_label[mid_slice], cmap="jet", vmin=0, vmax=5)
+    plt.title("Ground Truth")
+
+    # Panel 3: Model prediction
+    plt.subplot(1,3,3)
+    plt.imshow(prediction_label[mid_slice], cmap="jet", vmin=0, vmax=5)
+    plt.title("Prediction")
+
+    plt.suptitle("3D Improved UNet Segmentation")
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
+    print(f"Saved prediction visualisation to {save_path}")
