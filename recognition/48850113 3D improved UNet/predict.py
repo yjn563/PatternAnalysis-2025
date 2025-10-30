@@ -1,5 +1,7 @@
+import os
 import torch
-from train import ImprovedUNet3D
+from train import ImprovedUNet3D, Prostate3DDataset
+from torch.utils.data import DataLoader
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -113,3 +115,39 @@ def visualise_volume_prediction(model, dataset, idx=0, device="cpu", save_path="
     plt.savefig(save_path)
     plt.close()
     print(f"Saved prediction visualisation to {save_path}")
+
+def predict():
+    """
+    Load a pre trained model and make predictions on a test dataset. Then visualise the results
+    """
+    # Path to the trained model
+    model_path = "trained_model.pth"
+    
+    # Load the trained model
+    model = load_model(model_path)
+
+    # Define test dataset
+    root = "/home/groups/comp3710/HipMRI_Study_open"
+    image_dir = os.path.join(root, "semantic_MRs")
+    mask_dir = os.path.join(root, "semantic_labels_only")
+
+    # Get total number of samples in dataset
+    dataset = Prostate3DDataset(image_dir, mask_dir)
+    num_samples = len(dataset)
+
+    # Create a test dataset using last 3 samples from dataset
+    test_ds = Prostate3DDataset(image_dir, mask_dir, subset_start=num_samples - 3, subset_end=num_samples)  
+    
+    # Create data loader for test dataset
+    test_loader = DataLoader(test_ds, batch_size=1, shuffle=False)
+
+    # Get predictions on the test set
+    predictions = make_predictions(model, test_loader)
+
+    # Visualise predictions and save the images
+    for idx, prediction in enumerate(predictions):
+        save_path = f"prediction_{idx}.png"
+        visualise_volume_prediction(model, dataset, idx, device, save_path)
+
+if __name__ == "__main__":
+    predict()
