@@ -119,6 +119,8 @@ def train_validate_3d(
             visualise_volume_prediction(model, val_dataset, idx=0, device=device, save_path=save_path)
 
     print("✅ Training complete!")
+    torch.save(model.state_dict(), "trained_model.pth")
+    print("✅ Model saved to trained_model.pth")
 
     return val_mean_dice_history, val_per_class_dice_history
 
