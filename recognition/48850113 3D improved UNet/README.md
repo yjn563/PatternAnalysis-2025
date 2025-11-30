@@ -8,7 +8,7 @@ The 3D U-Net extends the original architecture to handle three-dimensional volum
 
 The 3D U-Net model consists of an encoder and a decoder. A bottleneck layer between the encoder and decoder was avoided in the network architecture, instead using instance normalization for faster and more stable convergence during training ([Isensee et al., 2018](https://arxiv.org/pdf/1802.10508v1)).
 
-![3D Improved U-Net figure](./readme_assets/3D_Improved_U-Net.png)
+![3D Improved U-Net figure](../readme_assets/3D_Improved_U-Net.png)
 
 ### Encoder (Contracting Path)
 The encoder, also known as the contracting path, captures contextual information by down sampling the input volume. Each stage of the encoder consists of two 3x3x3 convolutional layers followed by ReLU activations, and a 2x2x2 max pooling operation with a stride of two. At each down sampling step, the number of feature channels doubles, allowing the network to learn increasingly complex representations of the input data ([Isensee et al., 2018](https://arxiv.org/pdf/1802.10508v1)).
@@ -84,22 +84,22 @@ python predict.py
 
 The model was trained for 50 epochs with visualisations every 10 epochs to check progress, as shown below:
 
-- Epoch 10: ![Epoch 10](./readme_assets/prediction_epoch_10.png)
-- Epoch 20: ![Epoch 20](./readme_assets/prediction_epoch_20.png)
-- Epoch 30: ![Epoch 30](./readme_assets/prediction_epoch_30.png)
-- Epoch 40: ![Epoch 40](./readme_assets/prediction_epoch_40.png)
-- Epoch 50: ![Epoch 50](./readme_assets/prediction_epoch_50.png)
+- Epoch 10: ![Epoch 10](../readme_assets/prediction_epoch_10.png)
+- Epoch 20: ![Epoch 20](../readme_assets/prediction_epoch_20.png)
+- Epoch 30: ![Epoch 30](../readme_assets/prediction_epoch_30.png)
+- Epoch 40: ![Epoch 40](../readme_assets/prediction_epoch_40.png)
+- Epoch 50: ![Epoch 50](../readme_assets/prediction_epoch_50.png)
 
 In addition, the overall validation dice coefficient across the 50 epochs is plotted below:
 
-![Validation Dice](./readme_assets/val_mean_dice.png)
+![Validation Dice](../readme_assets/val_mean_dice.png)
 
 As expected, the coefficient increased during training.
 
 
 Additionally, the per-class validation dice coefficients across the 50 epochs are plotted below:
 
-![Per-Class Dice](./readme_assets/val_dice_per_class.png)
+![Per-Class Dice](../readme_assets/val_dice_per_class.png)
 
 As expected, the dice coefficients for every class increased during training.
 
@@ -111,15 +111,15 @@ Three unseen samples were tested in `predict.py`. The results are shown below:
 
 ### Sample 0
 - Per-class Dice Scores: [0.99833149, 0.98683143, 0.89724141, 0.85218036, 0.85911244, 0.47872341]
-- Visualisation: ![Prediction 0](./readme_assets/prediction_0.png)
+- Visualisation: ![Prediction 0](../readme_assets/prediction_0.png)
 
 ### Sample 1
 - Per-class Dice Scores: [0.9948405, 0.98069173, 0.90555626, 0.94768518, 0.86835349, 0.48975411]
-- Visualisation: ![Prediction 1](./readme_assets/prediction_1.png)
+- Visualisation: ![Prediction 1](../readme_assets/prediction_1.png)
 
 ### Sample 2
 - Per-class Dice Scores: [0.99726111, 0.98377687, 0.91158736, 0.93974024, 0.88424373, 0.87419766]
-- Visualisation: ![Prediction 2](./readme_assets/prediction_2.png)
+- Visualisation: ![Prediction 2](../readme_assets/prediction_2.png)
 
 As shown above, unfortunately, not all labels achieved the minimum requirement dice similarity coefficient of 0.7. Specifically sample 0 and sample 1 show lower scores for the last class (Prostate class).
 
